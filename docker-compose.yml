@@ -1,0 +1,38 @@
+version: '3'
+services:
+  dnsmasq:
+    image: dockurr/dnsmasq
+    environment:
+      DNS1: "1.0.0.1"
+      DNS2: "1.1.1.1"
+    ports:
+      - 53:53/udp
+      - 53:53/tcp
+    cap_add:
+      - NET_ADMIN
+    restart: on-failure
+    volumes:
+      - ./dnsmasq/hosts:/etc/hosts
+  nginx:
+    image: nginx:latest
+    restart: unless-stopped
+    depends_on:
+      - dnsmasq
+    volumes:
+      - ./nginx/nginx.conf:/etc/nginx/nginx.conf
+      - ./nginx/log/:/var/log/nginx/
+      - ./cert/:/etc/cert/
+    ports:
+      - 80:80
+      - 443:443
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+  gitea:
+    image: gitea/gitea:latest
+    restart: always
+    depends_on:
+      - nginx
+    volumes:
+      - ./gitea:/data
+    ports:
+      - 3000:3000
